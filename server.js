@@ -26,12 +26,8 @@ app.use(express.static(location));
 
 app.set("view engine", "hbs");
 
-const viewsPath = path.join(__dirname, "./views");
-app.set("views", viewsPath);
-
-const partialsPath = path.join(__dirname , "./views/partials");
+const partialsPath =  path.join(__dirname , "./views/partials");
 hbs.registerPartials(partialsPath);
-
 
 
 hbs.registerHelper('add', function(value, addition) {
@@ -46,8 +42,8 @@ app.use("/", require("./routes/pages"));
 
 app.use("/auth", require("./routes/auth"));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => 
+
+app.listen(5000, () => 
      {
-         console.log(`Server Started At Port ${PORT}`);
+         console.log("Server Started At Port 5000");
  });   
