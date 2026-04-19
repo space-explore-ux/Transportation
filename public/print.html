@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - CRM</title>
+    <meta name="description" content="Generate and print vehicle management reports">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Print-only header (hidden on screen) */
+        .print-only-header {
+            display: none;
+        }
+
+        @media print {
+            @page { size: A4 portrait; margin: 10mm 8mm; }
+            .app-layout { display: block !important; height: auto !important; min-height: auto !important; }
+            .main-content { display: block !important; }
+            .page-content { padding: 0 !important; overflow: visible !important; }
+            .print-page { box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; max-width: 100% !important; }
+            .print-header, .print-filters, .column-selector { display: none !important; }
+            .print-only-header {
+                display: flex !important;
+                justify-content: space-between;
+                align-items: center;
+                padding-bottom: 6px;
+                border-bottom: 1.5px solid #333;
+                margin-bottom: 8px;
+                font-size: 9px;
+                color: #333;
+            }
+            .print-only-header .ph-left { text-align: left; }
+            .print-only-header .ph-center { text-align: center; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+            .print-only-header .ph-right { text-align: right; }
+            .data-table { width: 100% !important; table-layout: auto !important; font-size: 10px !important; }
+            .data-table th, .data-table td { padding: 0.25rem 0.35rem !important; white-space: normal !important; word-wrap: break-word !important; }
+            .data-table th { font-size: 8px !important; }
+        }
+        .column-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            align-items: center;
+        }
+        .column-selector .selector-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-right: 0.5rem;
+        }
+        .col-check {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-default);
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .col-check:hover { border-color: var(--primary); color: var(--primary); }
+        .col-check input {
+            accent-color: var(--primary);
+            width: 14px; height: 14px;
+            cursor: pointer;
+        }
+        .col-check.unchecked {
+            opacity: 0.5;
+            background: var(--border-light);
+        }
+        .col-hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <main class="main-content">
+            <div id="header-container"></div>
+            <div class="page-content custom-scrollbar">
+                <div class="print-page">
+
+                    <!-- Printable Header -->
+                    <div class="print-header">
+                        <div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+                                <div class="sidebar-brand-icon" style="width:28px;height:28px;font-size:0.85rem;" id="printBrandIcon">C</div>
+                                <span class="print-company-name" style="font-size:1.15rem;font-weight:700;color:var(--text-dark);" id="printBrandName">Company</span>
+                            </div>
+                            <p style="font-size:0.75rem;color:var(--text-muted);margin:0;">Vehicle Management Registry Report</p>
+                        </div>
+                        <div style="text-align:right;">
+                            <p style="font-size:0.8rem;font-weight:600;color:var(--text-dark);margin:0;" id="reportTitle">Report</p>
+                            <p style="font-size:0.7rem;color:var(--text-muted);margin:0;" id="reportDate">Generated on —</p>
+                        </div>
+                    </div>
+
+                    <!-- Filters (hidden on print) -->
+                    <div class="print-filters no-print">
+                        <div class="container-fluid p-0">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-12 col-sm-6 col-lg-3">
+                                    <label class="form-label">Filter Column</label>
+                                    <select class="form-select" id="filterColumn">
+                                        <option value="fc_expiry_date">FC Expiry</option>
+                                        <option value="np">National Permit</option>
+                                        <option value="permit">Permit</option>
+                                        <option value="road_tax">Road Tax</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-lg-3">
+                                    <label class="form-label">From Date</label>
+                                    <input type="date" class="form-control" id="fromDate" value="2026-01-01">
+                                </div>
+                                <div class="col-12 col-sm-6 col-lg-3">
+                                    <label class="form-label">To Date</label>
+                                    <input type="date" class="form-control" id="toDate" value="2026-12-31">
+                                </div>
+                                <div class="col-12 col-sm-6 col-lg-3">
+                                    <button class="btn-primary" onclick="generateReport()" style="width:100%;justify-content:center;">
+                                        <i data-lucide="file-text" style="width:16px;height:16px;"></i> Generate Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column Selector (hidden on print) -->
+                    <div class="column-selector no-print" id="columnSelector">
+                        <span class="selector-label">Columns:</span>
+                        <label class="col-check" data-col="col-num"><input type="checkbox" checked onchange="toggleColumn('col-num', this.checked)"> #</label>
+                        <label class="col-check" data-col="col-owner"><input type="checkbox" checked onchange="toggleColumn('col-owner', this.checked)"> Owner Name</label>
+                        <label class="col-check" data-col="col-company"><input type="checkbox" checked onchange="toggleColumn('col-company', this.checked)"> Company</label>
+                        <label class="col-check" data-col="col-vehicle"><input type="checkbox" checked onchange="toggleColumn('col-vehicle', this.checked)"> Vehicle</label>
+                        <label class="col-check" data-col="col-type"><input type="checkbox" checked onchange="toggleColumn('col-type', this.checked)"> Type</label>
+                        <label class="col-check" data-col="col-fc"><input type="checkbox" checked onchange="toggleColumn('col-fc', this.checked)"> FC</label>
+                        <label class="col-check" data-col="col-np"><input type="checkbox" checked onchange="toggleColumn('col-np', this.checked)"> NP</label>
+                        <label class="col-check" data-col="col-permit"><input type="checkbox" checked onchange="toggleColumn('col-permit', this.checked)"> Permit</label>
+                        <label class="col-check" data-col="col-roadtax"><input type="checkbox" checked onchange="toggleColumn('col-roadtax', this.checked)"> Road Tax</label>
+                        <label class="col-check" data-col="col-taxamt"><input type="checkbox" checked onchange="toggleColumn('col-taxamt', this.checked)"> Tax Amount</label>
+                    </div>
+
+                    <!-- Report Summary -->
+                    <div id="reportSummary" style="display:none;margin-bottom:1rem;">
+                        <div class="container-fluid p-0">
+                            <div class="row g-3">
+                                <div class="col-4">
+                                    <div style="padding:0.75rem;background:var(--border-light);border-radius:var(--radius-md);text-align:center;">
+                                        <p style="font-size:0.65rem;color:var(--text-muted);margin:0;text-transform:uppercase;letter-spacing:0.05em;">Total Records</p>
+                                        <p style="font-size:1.25rem;font-weight:700;color:var(--text-dark);margin:0;" id="summaryTotal">0</p>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div style="padding:0.75rem;background:var(--border-light);border-radius:var(--radius-md);text-align:center;">
+                                        <p style="font-size:0.65rem;color:var(--text-muted);margin:0;text-transform:uppercase;letter-spacing:0.05em;">Filter</p>
+                                        <p style="font-size:0.85rem;font-weight:600;color:var(--primary);margin:0;" id="summaryFilter">—</p>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div style="padding:0.75rem;background:var(--border-light);border-radius:var(--radius-md);text-align:center;">
+                                        <p style="font-size:0.65rem;color:var(--text-muted);margin:0;text-transform:uppercase;letter-spacing:0.05em;">Date Range</p>
+                                        <p style="font-size:0.75rem;font-weight:600;color:var(--text-dark);margin:0;" id="summaryRange">—</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Print-Only Header (visible only on print) -->
+                    <div class="print-only-header">
+                        <div class="ph-left" id="phDate"></div>
+                        <div class="ph-center" id="phFilter">Vehicle Report</div>
+                        <div class="ph-right">Page 1</div>
+                    </div>
+
+                    <!-- Report Table -->
+                    <div style="overflow-x:auto;" class="custom-scrollbar">
+                        <table class="data-table" id="reportTable">
+                            <thead>
+                                <tr>
+                                    <th class="col-num">#</th>
+                                    <th class="col-owner">Owner Name</th>
+                                    <th class="col-company">Company</th>
+                                    <th class="col-vehicle">Vehicle</th>
+                                    <th class="col-type">Type</th>
+                                    <th class="col-fc">FC</th>
+                                    <th class="col-np">NP</th>
+                                    <th class="col-permit">Permit</th>
+                                    <th class="col-roadtax">Road Tax</th>
+                                    <th class="col-taxamt">Tax Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody">
+                                <tr><td colspan="10" class="empty-state">
+                                    <i data-lucide="file-search" style="width:40px;height:40px;opacity:0.3;display:block;margin:0 auto 0.5rem;"></i>
+                                    Select filters and click "Generate Report"
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Print Footer -->
+                    <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border-color);display:flex;justify-content:space-between;">
+                        <p style="font-size:0.65rem;color:var(--text-muted);margin:0;" id="printFooterBrand">Vehicle Management CRM</p>
+                        <p style="font-size:0.65rem;color:var(--text-muted);margin:0;" id="printFooterDate"></p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating Print Button -->
+    <div class="print-fab no-print">
+        <button class="btn-primary" onclick="window.print()" style="padding:0.75rem 1.5rem;border-radius:9999px;box-shadow:0 8px 24px rgba(124,58,237,0.3);">
+            <i data-lucide="printer" style="width:18px;height:18px;"></i> Print Document
+        </button>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    <script>
+        requireAuth();
+        document.getElementById('sidebar-container').innerHTML = generateSidebarHTML('print');
+        document.getElementById('header-container').innerHTML = generateHeaderHTML();
+
+        // Set branding from config
+        document.getElementById('printBrandIcon').textContent = getConfig('iconLetter', 'C');
+        document.getElementById('printBrandName').textContent = getConfig('companyName', 'Company') + ' ' + getConfig('companyStudio', 'studio.');
+        document.getElementById('printFooterBrand').textContent = getConfig('companyName', 'Company') + ' - Vehicle Management CRM';
+
+        // Set current date
+        document.getElementById('reportDate').textContent = `Generated on ${formatDate(new Date().toISOString())}`;
+        document.getElementById('printFooterDate').textContent = `Printed: ${new Date().toLocaleDateString('en-US', { dateStyle: 'full' })}`;
+        // Print-only header
+        document.getElementById('phDate').textContent = new Date().toLocaleString();
+        // ============ COLUMN TOGGLE ============
+        function toggleColumn(colClass, show) {
+            const cells = document.querySelectorAll(`.${colClass}`);
+            cells.forEach(cell => {
+                if (show) {
+                    cell.classList.remove('col-hidden');
+                } else {
+                    cell.classList.add('col-hidden');
+                }
+            });
+
+            // Update checkbox label appearance
+            const label = document.querySelector(`.col-check[data-col="${colClass}"]`);
+            if (label) {
+                if (show) label.classList.remove('unchecked');
+                else label.classList.add('unchecked');
+            }
+        }
+
+        // ============ GENERATE REPORT ============
+        async function generateReport() {
+            const filterColumn = document.getElementById('filterColumn').value;
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const tbody = document.getElementById('reportTableBody');
+
+            // Build filter params for the vehicles API
+            const params = new URLSearchParams();
+            const filterMap = {
+                fc_expiry_date: ['fc_start', 'fc_end'],
+                np: ['np_start', 'np_end'],
+                permit: ['permit_start', 'permit_end'],
+                road_tax: ['road_tax_start', 'road_tax_end']
+            };
+
+            const [startKey, endKey] = filterMap[filterColumn];
+            if (fromDate) params.append(startKey, fromDate);
+            if (toDate) params.append(endKey, toDate);
+
+            // Update report title
+            const labels = { fc_expiry_date: 'FC Expiry', np: 'National Permit', permit: 'Permit', road_tax: 'Road Tax' };
+            document.getElementById('reportTitle').textContent = `${labels[filterColumn]} Report`;
+            document.getElementById('phFilter').textContent = `${labels[filterColumn]} Report`;
+
+            // Count visible columns for colspan
+            const visibleCols = document.querySelectorAll('#reportTable thead th:not(.col-hidden)').length;
+
+            tbody.innerHTML = `<tr><td colspan="${visibleCols}" class="empty-state"><span class="spinner dark"></span> Generating report...</td></tr>`;
+
+            try {
+                const res = await apiCall(`api/vehicles?${params.toString()}`);
+                const records = res.data || [];
+
+                // Show summary
+                document.getElementById('reportSummary').style.display = 'block';
+                document.getElementById('summaryTotal').textContent = records.length;
+                document.getElementById('summaryFilter').textContent = labels[filterColumn];
+                document.getElementById('summaryRange').textContent = `${formatDate(fromDate)} – ${formatDate(toDate)}`;
+
+                if (records.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${visibleCols}" class="empty-state">No records found for the selected criteria</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = records.map((r, i) => {
+                    return `<tr>
+                        <td class="col-num" style="color:var(--text-muted);">${i + 1}</td>
+                        <td class="col-owner" style="font-weight:500;color:var(--text-dark);">${r.client_name || '—'}</td>
+                        <td class="col-company">${r.company || '—'}</td>
+                        <td class="col-vehicle"><span class="vehicle-number">${r.vehicle_number || '—'}</span></td>
+                        <td class="col-type"><span class="type-badge">${r.vehicle_type || '—'}</span></td>
+                        <td class="col-fc">${formatDate(r.fc_expiry_date)}</td>
+                        <td class="col-np">${formatDate(r.np)}</td>
+                        <td class="col-permit">${formatDate(r.permit)}</td>
+                        <td class="col-roadtax">${formatDate(r.road_tax)}</td>
+                        <td class="col-taxamt"><strong>${formatCurrency(r.road_tax_amount)}</strong></td>
+                    </tr>`;
+                }).join('');
+
+                // Re-apply hidden columns to new rows
+                document.querySelectorAll('.col-check input').forEach(cb => {
+                    const colClass = cb.closest('.col-check').dataset.col;
+                    if (!cb.checked) {
+                        document.querySelectorAll(`.${colClass}`).forEach(cell => cell.classList.add('col-hidden'));
+                    }
+                });
+
+                lucide.createIcons();
+
+                // Auto-print if URL param
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('autoprint') === 'true') {
+                    setTimeout(() => window.print(), 500);
+                }
+            } catch (err) {
+                const errMsg = (err.data && err.data.message) || err.message || 'Report generation failed';
+                tbody.innerHTML = `<tr><td colspan="${visibleCols}" class="empty-state">Failed to generate report. Please try again.</td></tr>`;
+                showToast(errMsg, 'error');
+            }
+        }
+
+        // Auto-generate if URL params are present
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('autoprint') === 'true' || params.get('auto') === 'true') {
+            generateReport();
+        }
+    </script>
+</body>
+</html>

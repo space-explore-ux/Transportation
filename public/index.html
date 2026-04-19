@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CRM</title>
+    <meta name="description" content="Vehicle Management CRM Dashboard - Monitor owners, vehicles, and permits">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 1050;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 1rem;
+            overflow-y: auto;
+        }
+        .modal-overlay.active { display: flex; }
+        body.modal-open { overflow: hidden; }
+        .modal-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 600px;
+            padding: 1.75rem;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.15);
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+        .btn-secondary {
+            padding: 0.6rem 1.25rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-default);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: var(--border-light); }
+        .btn-danger {
+            padding: 0.6rem 1.25rem;
+            border-radius: var(--radius-lg);
+            border: none;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-danger:hover { opacity: 0.9; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        @media (max-width: 576px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-end;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .filter-bar .form-group { margin-bottom: 0; }
+        .filter-bar .form-label { font-size: 0.7rem; margin-bottom: 0.25rem; }
+        .filter-bar input, .filter-bar select {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+        }
+        .table-action-group {
+            display: flex;
+            gap: 0.25rem;
+            justify-content: center;
+        }
+        .table-action-btn.edit:hover { color: var(--primary); }
+        .table-action-btn.delete:hover { color: #ef4444; }
+
+        /* Delete confirm modal */
+        .delete-modal-box {
+            max-width: 400px;
+            text-align: center;
+        }
+        .delete-modal-box .delete-icon {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: rgba(239,68,68,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: #ef4444;
+        }
+        .delete-modal-box p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.5rem 0 0;
+        }
+        .delete-modal-box .modal-actions { justify-content: center; }
+
+        /* Column selector modal */
+        .col-select-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .col-select-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-white);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-default);
+            user-select: none;
+        }
+        .col-select-item:hover { border-color: var(--primary); color: var(--primary); }
+        .col-select-item input { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
+        .col-select-item.unchecked { opacity: 0.5; background: var(--border-light); }
+        .col-select-warning {
+            font-size: 0.75rem;
+            color: var(--danger);
+            margin-top: 0.75rem;
+            display: none;
+        }
+
+        /* Owner auto-suggest in modal */
+        .owner-suggest-wrapper { position: relative; }
+        .owner-suggest-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0; right: 0;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 200;
+            margin-top: 4px;
+            display: none;
+        }
+        .owner-suggest-dropdown.show { display: block; }
+        .owner-suggest-item {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.8rem;
+        }
+        .owner-suggest-item:last-child { border-bottom: none; }
+        .owner-suggest-item:hover { background: var(--primary-light); }
+        .owner-suggest-name { font-weight: 600; color: var(--text-dark); }
+        .owner-suggest-sub { font-size: 0.7rem; color: var(--text-muted); }
+
+        .col-hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar & Overlay (injected by JS) -->
+        <div id="sidebar-container"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header (injected by JS) -->
+            <div id="header-container"></div>
+
+            <!-- Scrollable Content -->
+            <div class="page-content custom-scrollbar">
+
+                <!-- WhatsApp + Pin Controls -->
+                <div style="display:flex;align-items:center;gap:0.5rem;justify-content:flex-end;margin-bottom:0.5rem;" id="dashboard-controls"></div>
+
+                <!-- Summary Stats Carousel -->
+                <div class="container-fluid p-0 mb-4">
+                    <div class="stats-carousel-wrapper" id="stats-row">
+                        <button class="carousel-arrow left" id="carouselLeft" onclick="scrollCards(-1)">
+                            <i data-lucide="chevron-left" style="width:16px;height:16px;"></i>
+                        </button>
+                        <div class="stats-carousel-inner">
+                            <div class="stats-carousel-track" id="carouselTrack">
+                                <div class="stat-card-item">
+                                    <div class="glass-card stat-card purple">
+                                        <div class="stat-card-header">
+                                            <span class="stat-card-title">Total Vehicles</span>
+                                            <span class="stat-badge purple" id="stat-vehicles-badge">Loading</span>
+                                        </div>
+                                        <div><span class="stat-value" id="stat-vehicles-count">—</span></div>
+                                    </div>
+                                </div>
+                                <div class="stat-card-item">
+                                    <div class="glass-card stat-card emerald">
+                                        <div class="stat-card-header">
+                                            <span class="stat-card-title">Total Owners</span>
+                                            <span class="stat-badge emerald">Active</span>
+                                        </div>
+                                        <div><span class="stat-value" id="stat-clients-count">—</span></div>
+                                    </div>
+                                </div>
+                                <div class="stat-card-item">
+                                    <div class="glass-card stat-card blue">
+                                        <div class="stat-card-header">
+                                            <span class="stat-card-title">FC Expiring Soon</span>
+                                            <span class="stat-badge blue">Alert</span>
+                                        </div>
+                                        <div>
+                                            <span class="stat-value" id="stat-fc-count">—</span>
+                                            <span class="stat-sub">within 30 days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="stat-card-item">
+                                    <div class="glass-card stat-card indigo">
+                                        <div class="stat-card-header">
+                                            <span class="stat-card-title">Permit Expiring</span>
+                                            <span class="stat-badge indigo">Alert</span>
+                                        </div>
+                                        <div>
+                                            <span class="stat-value" id="stat-permit-count">—</span>
+                                            <span class="stat-sub">within 30 days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="stat-card-item">
+                                    <div class="glass-card stat-card" style="border-left-color:#f59e0b;">
+                                        <div class="stat-card-header">
+                                            <span class="stat-card-title">NP Expiring</span>
+                                            <span class="stat-badge" style="background:#fffbeb;color:#d97706;">Alert</span>
+                                        </div>
+                                        <div>
+                                            <span class="stat-value" id="stat-np-count">—</span>
+                                            <span class="stat-sub">within 30 days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="carousel-arrow right" id="carouselRight" onclick="scrollCards(1)">
+                            <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Data Grid -->
+                <div class="glass-card overflow-hidden mb-4">
+                    <div class="data-table-header">
+                        <div class="data-table-title">
+                            <h2>Vehicle Management Registry</h2>
+                            <p>Listing all active owner vehicles and permit data</p>
+                        </div>
+                        <div class="data-table-actions">
+                            <div class="search-input-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="searchInput" class="search-input" placeholder="Search entries...">
+                            </div>
+                            <select class="form-select" id="sortSelect" style="width:auto;padding:0.45rem 0.75rem;font-size:0.8rem;" onchange="renderTable()">
+                                <option value="default">Default Order</option>
+                                <option value="recently_added">Recently Added</option>
+                                <option value="recently_edited">Recently Edited</option>
+                            </select>
+                            <button class="btn-primary" onclick="openAddModal()">
+                                <i data-lucide="plus" style="width:16px;height:16px;"></i>
+                                Add Vehicle
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="filter-bar no-print">
+                        <div class="form-group">
+                            <label class="form-label">FC From</label>
+                            <input type="date" class="form-control" id="filterFcStart">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">FC To</label>
+                            <input type="date" class="form-control" id="filterFcEnd">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Owner Name</label>
+                            <input type="text" class="form-control" id="filterOwnerName" placeholder="Search owner...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Vehicle</label>
+                            <input type="text" class="form-control" id="filterVehicleNumber" placeholder="Search vehicle...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Vehicle Type</label>
+                            <select class="form-select" id="filterVehicleType">
+                                <option value="">All Types</option>
+                                <option value="Heavy Truck">Heavy Truck</option>
+                                <option value="Light Commercial">Light Commercial</option>
+                                <option value="Bus">Bus</option>
+                                <option value="Trailer">Trailer</option>
+                                <option value="Tanker">Tanker</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" onclick="applyFilters()" style="padding:0.45rem 1rem;font-size:0.8rem;">
+                            <i data-lucide="filter" style="width:14px;height:14px;"></i> Filter
+                        </button>
+                        <button class="btn-outline" onclick="openColumnSelectorModal()" style="padding:0.45rem 1rem;font-size:0.8rem;">
+                            <i data-lucide="columns-3" style="width:14px;height:14px;"></i> Select Columns
+                        </button>
+                        <div class="rows-per-page">
+                            <span>Rows:</span>
+                            <select id="rowsPerPage" onchange="changePerPage()">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="30">30</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                        <button class="btn-secondary" onclick="clearFilters()" style="padding:0.45rem 1rem;font-size:0.8rem;">
+                            <i data-lucide="x" style="width:14px;height:14px;"></i> Clear
+                        </button>
+                    </div>
+
+                    <div style="overflow-x:auto;" class="custom-scrollbar">
+                        <table class="data-table" id="dashboardTable">
+                            <thead>
+                                <tr>
+                                    <th class="dcol-owner">Owner Name</th>
+                                    <th class="dcol-company">Company</th>
+                                    <th class="dcol-vehicle">Vehicle</th>
+                                    <th class="dcol-type">Type</th>
+                                    <th class="dcol-fc">FC</th>
+                                    <th class="dcol-np">NP</th>
+                                    <th class="dcol-permit">Permit</th>
+                                    <th class="dcol-roadtax">Road Tax</th>
+                                    <th class="dcol-taxamt">Tax Amount</th>
+                                    <th class="dcol-notes">Notes</th>
+                                    <th class="dcol-created">Created At</th>
+                                    <th class="dcol-actions" style="text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vehicleTableBody">
+                                <tr><td colspan="12" class="empty-state"><span class="spinner dark"></span> Loading vehicles...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-wrapper" id="paginationWrapper">
+                        <span class="pagination-info" id="paginationInfo">Showing 0 entries</span>
+                        <div class="pagination-buttons" id="paginationButtons"></div>
+                    </div>
+                </div>
+
+                <!-- Notes & Export (hidden per requirements) -->
+                <div class="container-fluid p-0" style="display:none;">
+                    <div class="row g-4 mb-5">
+                        <div class="col-12 col-lg-6">
+                            <div class="glass-card p-4 rounded-3xl">
+                                <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem;">
+                                    <div class="section-icon">
+                                        <i data-lucide="sticky-note" style="width:22px;height:22px;"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-weight:700;color:var(--text-dark);font-size:1rem;margin:0;">Quick Notes</h3>
+                                        <p style="font-size:0.75rem;color:var(--text-muted);margin:0;">Internal reminders for current session</p>
+                                    </div>
+                                </div>
+                                <div id="notesContainer">
+                                    <div class="note-card mb-3">
+                                        <div class="note-bar purple"></div>
+                                        <div>
+                                            <p style="font-size:0.875rem;font-weight:500;color:var(--text-dark);margin:0;">Check vehicles with expiring FC</p>
+                                            <p style="font-size:0.7rem;color:var(--text-muted);margin:0.25rem 0 0;">Review pending renewals</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="export-card">
+                                <h3>Export Registry Data</h3>
+                                <p>Download all your vehicle and owner data into a structured format for offline management.</p>
+                                <div style="display:flex;gap:0.75rem;">
+                                    <button class="btn-export-secondary">
+                                        <i data-lucide="download" style="width:16px;height:16px;"></i> CSV
+                                    </button>
+                                    <button class="btn-export-primary">
+                                        <i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> Excel Export
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ========== ADD / EDIT VEHICLE MODAL ========== -->
+    <div class="modal-overlay" id="vehicleModal">
+        <div class="modal-box">
+            <h3 class="modal-title" id="vehicleModalTitle">
+                <i data-lucide="plus-circle" style="width:20px;height:20px;color:var(--primary);"></i>
+                Add New Vehicle
+            </h3>
+            <form id="vehicleForm" autocomplete="off">
+                <input type="hidden" id="vehicleEditId" value="">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="vOwnerName">Owner Name *</label>
+                        <div class="owner-suggest-wrapper">
+                            <input type="text" id="vOwnerName" class="form-control" placeholder="Owner name" required autocomplete="off">
+                            <div class="owner-suggest-dropdown" id="ownerSuggestDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="vPhone">Phone *</label>
+                        <input type="tel" id="vPhone" class="form-control" placeholder="Phone number" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="vCompany">Company</label>
+                        <input type="text" id="vCompany" class="form-control" placeholder="Company name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="vVehicleNumber">Vehicle Number *</label>
+                        <input type="text" id="vVehicleNumber" class="form-control" placeholder="Vehicle number" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="vVehicleType">Vehicle Type *</label>
+                        <select id="vVehicleType" class="form-select" required>
+                            <option value="">Select type...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="vRoadTaxAmount">Road Tax Amount (₹)</label>
+                        <input type="number" id="vRoadTaxAmount" class="form-control" placeholder="Amount">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="vFcExpiry">FC Expiry *</label>
+                        <input type="date" id="vFcExpiry" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="vNp">National Permit (NP)</label>
+                        <input type="date" id="vNp" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="vPermit">Permit</label>
+                        <input type="date" id="vPermit" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="vRoadTax">Road Tax Date</label>
+                        <input type="date" id="vRoadTax" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="vNotes">Notes</label>
+                    <textarea id="vNotes" class="form-control" rows="2" placeholder="Additional notes..." style="resize:vertical;"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeVehicleModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="vehicleSubmitBtn" style="padding:0.6rem 1.5rem;">
+                        <i data-lucide="check" style="width:16px;height:16px;"></i>
+                        <span id="vehicleSubmitText">Add Vehicle</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== DELETE CONFIRMATION MODAL ========== -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-box delete-modal-box">
+            <div class="delete-icon">
+                <i data-lucide="trash-2" style="width:28px;height:28px;"></i>
+            </div>
+            <h3 class="modal-title" style="justify-content:center;">Delete Vehicle</h3>
+            <p>Are you sure you want to delete vehicle <strong id="deleteVehicleNum"></strong>?</p>
+            <p style="font-size:0.75rem;color:var(--text-muted);">This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">
+                    <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== COLUMN SELECTOR MODAL ========== -->
+    <div class="modal-overlay" id="colSelectModal">
+        <div class="modal-box" style="max-width:460px;">
+            <h3 class="modal-title">
+                <i data-lucide="columns-3" style="width:20px;height:20px;color:var(--primary);"></i>
+                Select Columns
+            </h3>
+            <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Choose which columns to display. At least 4 must be selected.</p>
+            <div class="col-select-grid" id="colSelectGrid"></div>
+            <p class="col-select-warning" id="colSelectWarning">⚠ At least 4 columns must remain selected.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeColumnSelectorModal()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="applyColumnSelection()" style="padding:0.6rem 1.5rem;">
+                    <i data-lucide="check" style="width:16px;height:16px;"></i> Apply
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    <script>
+        requireAuth();
+
+        // Inject sidebar & header
+        document.getElementById('sidebar-container').innerHTML = generateSidebarHTML('index');
+        document.getElementById('header-container').innerHTML = generateHeaderHTML();
+        document.title = `Dashboard - ${getConfig('appTitle', 'CRM')}`;
+
+        // State
+        let allVehicles = [];
+        let currentPage = 1;
+        let perPage = 10;
+        let carouselPos = 0;
+        let deleteTargetId = null;
+        let deleteTargetNum = '';
+
+        // ============ DASHBOARD COLUMN DEFINITIONS ============
+        const DASHBOARD_COLUMNS = [
+            { key: 'dcol-owner', label: 'Owner Name' },
+            { key: 'dcol-company', label: 'Company' },
+            { key: 'dcol-vehicle', label: 'Vehicle' },
+            { key: 'dcol-type', label: 'Type' },
+            { key: 'dcol-fc', label: 'FC' },
+            { key: 'dcol-np', label: 'NP' },
+            { key: 'dcol-permit', label: 'Permit' },
+            { key: 'dcol-roadtax', label: 'Road Tax' },
+            { key: 'dcol-taxamt', label: 'Tax Amount' },
+            { key: 'dcol-notes', label: 'Notes' },
+            { key: 'dcol-created', label: 'Created At' },
+            { key: 'dcol-actions', label: 'Actions' }
+        ];
+
+        function getDashboardColumnState() {
+            try {
+                const stored = localStorage.getItem('dashboard_columns');
+                if (stored) return JSON.parse(stored);
+            } catch {}
+            // Default: all visible
+            const state = {};
+            DASHBOARD_COLUMNS.forEach(c => state[c.key] = true);
+            return state;
+        }
+
+        function applyDashboardColumns() {
+            const state = getDashboardColumnState();
+            DASHBOARD_COLUMNS.forEach(c => {
+                document.querySelectorAll(`.${c.key}`).forEach(el => {
+                    if (state[c.key]) el.classList.remove('col-hidden');
+                    else el.classList.add('col-hidden');
+                });
+            });
+        }
+
+        // Column Selector Modal
+        function openColumnSelectorModal() {
+            const state = getDashboardColumnState();
+            const grid = document.getElementById('colSelectGrid');
+            grid.innerHTML = DASHBOARD_COLUMNS.map(c => {
+                const checked = state[c.key] !== false;
+                return `<label class="col-select-item ${checked ? '' : 'unchecked'}">
+                    <input type="checkbox" data-col="${c.key}" ${checked ? 'checked' : ''} onchange="updateColSelectItem(this)">
+                    ${c.label}
+                </label>`;
+            }).join('');
+            document.getElementById('colSelectWarning').style.display = 'none';
+            document.getElementById('colSelectModal').classList.add('active');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeColumnSelectorModal() {
+            document.getElementById('colSelectModal').classList.remove('active');
+            document.body.classList.remove('modal-open');
+        }
+
+        function updateColSelectItem(checkbox) {
+            const label = checkbox.closest('.col-select-item');
+            if (checkbox.checked) label.classList.remove('unchecked');
+            else label.classList.add('unchecked');
+        }
+
+        function applyColumnSelection() {
+            const checkboxes = document.querySelectorAll('#colSelectGrid input[type="checkbox"]');
+            const state = {};
+            let checkedCount = 0;
+            checkboxes.forEach(cb => {
+                state[cb.dataset.col] = cb.checked;
+                if (cb.checked) checkedCount++;
+            });
+
+            if (checkedCount < 4) {
+                document.getElementById('colSelectWarning').style.display = 'block';
+                return;
+            }
+
+            localStorage.setItem('dashboard_columns', JSON.stringify(state));
+            applyDashboardColumns();
+            closeColumnSelectorModal();
+            showToast('Column selection updated', 'success');
+        }
+
+        // Close modal on overlay click
+        document.getElementById('colSelectModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeColumnSelectorModal();
+        });
+
+        // ============ ROWS PER PAGE ============
+        function changePerPage() {
+            perPage = parseInt(document.getElementById('rowsPerPage').value) || 10;
+            currentPage = 1;
+            renderTable();
+        }
+
+        // ============ CAROUSEL ============
+        function scrollCards(dir) {
+            const track = document.getElementById('carouselTrack');
+            const items = track.querySelectorAll('.stat-card-item');
+            const maxPos = Math.max(0, items.length - 4);
+            carouselPos = Math.max(0, Math.min(carouselPos + dir, maxPos));
+            const itemWidth = items[0].offsetWidth + 16; // gap
+            track.style.transform = `translateX(-${carouselPos * itemWidth}px)`;
+            document.getElementById('carouselLeft').disabled = carouselPos === 0;
+            document.getElementById('carouselRight').disabled = carouselPos >= maxPos;
+        }
+
+        // ============ WHATSAPP STATUS ============
+        async function checkWhatsAppStatus() {
+            const container = document.getElementById('dashboard-controls');
+            try {
+                const res = await apiCall('api/whatsapp/status');
+                const sentToday = res.alreadySentToday;
+                const btnClass = sentToday ? 'whatsapp-btn sent' : 'whatsapp-btn needs-action';
+                const btnText = sentToday ? '✓ Sent Today' : 'Send Reminders';
+                const waBtn = `<button class="${btnClass}" onclick="openWhatsAppModal()" id="waBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.12.553 4.108 1.516 5.834L.053 23.65a.5.5 0 00.597.597l5.816-1.463A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.35-1.558l-.384-.23-3.446.868.879-3.395-.249-.396A9.94 9.94 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                    ${btnText}
+                </button>`;
+                container.insertAdjacentHTML('afterbegin', waBtn);
+            } catch (err) {
+                // WhatsApp API not available, skip button
+            }
+        }
+
+        function openWhatsAppModal() {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay active';
+            overlay.id = 'waModal';
+            overlay.innerHTML = `<div class="modal-box" style="max-width:380px;">
+                <div class="wa-modal-content" id="waModalBody">
+                    <div class="wa-loader"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.12.553 4.108 1.516 5.834L.053 23.65a.5.5 0 00.597.597l5.816-1.463A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg></div>
+                    <p class="wa-success-text">Sending WhatsApp reminders...</p>
+                </div>
+            </div>`;
+            document.body.appendChild(overlay);
+            document.body.classList.add('modal-open');
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) closeWhatsAppModal(); });
+            sendWhatsAppReminders();
+        }
+
+        async function sendWhatsAppReminders() {
+            try {
+                const res = await apiCall('api/whatsapp/send', { method: 'POST' });
+                document.getElementById('waModalBody').innerHTML = `
+                    <div style="width:60px;height:60px;border-radius:50%;background:#ecfdf5;color:#22c55e;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    </div>
+                    <p class="wa-success-text">${res.message || 'Reminders sent successfully!'}</p>
+                    <button class="btn-primary" onclick="closeWhatsAppModal()" style="margin-top:1rem;">Done</button>`;
+                // Update button state
+                const waBtn = document.getElementById('waBtn');
+                if (waBtn) {
+                    waBtn.className = 'whatsapp-btn sent';
+                    waBtn.querySelector('svg').nextSibling.textContent = ' ✓ Sent Today';
+                }
+            } catch (err) {
+                document.getElementById('waModalBody').innerHTML = `
+                    <div style="width:60px;height:60px;border-radius:50%;background:#fef2f2;color:#ef4444;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    </div>
+                    <p class="wa-success-text">${(err.data && err.data.message) || err.message || 'Failed to send reminders.'}</p>
+                    <button class="btn-outline" onclick="closeWhatsAppModal()" style="margin-top:1rem;">Close</button>`;
+            }
+        }
+
+        function closeWhatsAppModal() {
+            const m = document.getElementById('waModal');
+            if (m) { m.remove(); document.body.classList.remove('modal-open'); }
+        }
+
+        // ============ LOAD VEHICLES ============
+        async function loadVehicles(queryParams = '') {
+            const tbody = document.getElementById('vehicleTableBody');
+            tbody.innerHTML = `<tr><td colspan="12" class="empty-state"><span class="spinner dark"></span> Loading vehicles...</td></tr>`;
+            try {
+                const res = await apiCall(`api/vehicles${queryParams ? '?' + queryParams : ''}`);
+                allVehicles = res.data || [];
+                updateStats();
+                renderTable();
+            } catch (err) {
+                tbody.innerHTML =
+                    `<tr><td colspan="12" class="empty-state"><i data-lucide="alert-circle"></i><p>Failed to load vehicles</p></td></tr>`;
+                lucide.createIcons();
+            }
+        }
+
+        // ============ FILTERS ============
+        function applyFilters() {
+            const params = new URLSearchParams();
+            const fcStart = document.getElementById('filterFcStart').value;
+            const fcEnd = document.getElementById('filterFcEnd').value;
+            const ownerName = document.getElementById('filterOwnerName').value.trim();
+            const vehicleNumber = document.getElementById('filterVehicleNumber').value.trim();
+            const vehicleType = document.getElementById('filterVehicleType').value;
+
+            if (fcStart) params.append('fc_start', fcStart);
+            if (fcEnd) params.append('fc_end', fcEnd);
+            if (ownerName) params.append('client_name', ownerName);
+            if (vehicleNumber) params.append('vehicle_number', vehicleNumber);
+            if (vehicleType) params.append('vehicle_type', vehicleType);
+
+            currentPage = 1;
+            loadVehicles(params.toString());
+        }
+
+        function clearFilters() {
+            document.getElementById('filterFcStart').value = '';
+            document.getElementById('filterFcEnd').value = '';
+            document.getElementById('filterOwnerName').value = '';
+            document.getElementById('filterVehicleNumber').value = '';
+            document.getElementById('filterVehicleType').value = '';
+            currentPage = 1;
+            loadVehicles();
+        }
+
+        // ============ STATS ============
+        function updateStats() {
+            const total = allVehicles.length;
+            const now = new Date();
+            const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+            let fcExpiring = 0, permitExpiring = 0, npExpiring = 0;
+            const owners = new Set();
+
+            allVehicles.forEach(v => {
+                if (v.client_name) owners.add(v.client_name);
+                if (v.fc_expiry_date && new Date(v.fc_expiry_date) <= in30) fcExpiring++;
+                if (v.permit && new Date(v.permit) <= in30) permitExpiring++;
+                if (v.np && new Date(v.np) <= in30) npExpiring++;
+            });
+
+            document.getElementById('stat-vehicles-count').textContent = total;
+            document.getElementById('stat-vehicles-badge').textContent = `Total`;
+            document.getElementById('stat-fc-count').textContent = fcExpiring;
+            document.getElementById('stat-permit-count').textContent = permitExpiring;
+            document.getElementById('stat-np-count').textContent = npExpiring;
+            document.getElementById('stat-clients-count').textContent = owners.size;
+        }
+
+        // ============ RENDER TABLE ============
+        function renderTable() {
+            const tbody = document.getElementById('vehicleTableBody');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = allVehicles.filter(v => {
+                const searchStr = `${v.client_name} ${v.company} ${v.vehicle_number} ${v.vehicle_type}`.toLowerCase();
+                return searchStr.includes(search);
+            });
+
+            // Sort
+            const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'default';
+            if (sortVal === 'recently_added') {
+                filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            } else if (sortVal === 'recently_edited') {
+                filtered.sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
+            }
+
+            const totalPages = Math.ceil(filtered.length / perPage);
+            if (currentPage > totalPages) currentPage = 1;
+            const start = (currentPage - 1) * perPage;
+            const pageData = filtered.slice(start, start + perPage);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" class="empty-state"><i data-lucide="inbox" style="width:40px;height:40px;opacity:0.4;margin-bottom:0.5rem;display:block;margin-left:auto;margin-right:auto;"></i><p>No vehicles found</p></td></tr>`;
+                lucide.createIcons();
+                document.getElementById('paginationInfo').textContent = 'Showing 0 entries';
+                document.getElementById('paginationButtons').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = pageData.map((v, i) => {
+                const color = getAvatarColor(start + i);
+                const initials = getInitials(v.client_name);
+
+                return `<tr>
+                    <td class="dcol-owner">
+                        <div class="table-user-cell">
+                            <div class="table-avatar ${color}">${initials}</div>
+                            <div>
+                                <p class="table-user-name">${v.client_name || '—'}</p>
+                                <p class="table-user-sub">${v.phone || ''}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="dcol-company"><span style="font-weight:500;color:var(--text-default);">${v.company || '—'}</span></td>
+                    <td class="dcol-vehicle"><span class="vehicle-number">${v.vehicle_number || '—'}</span></td>
+                    <td class="dcol-type"><span class="type-badge">${v.vehicle_type || '—'}</span></td>
+                    <td class="dcol-fc">${expiryDotHTML(v.fc_expiry_date)}${formatDate(v.fc_expiry_date)}</td>
+                    <td class="dcol-np">${expiryDotHTML(v.np)}${formatDate(v.np)}</td>
+                    <td class="dcol-permit">${expiryDotHTML(v.permit)}${formatDate(v.permit)}</td>
+                    <td class="dcol-roadtax">${expiryDotHTML(v.road_tax)}${formatDate(v.road_tax)}</td>
+                    <td class="dcol-taxamt"><strong>${formatCurrency(v.road_tax_amount)}</strong></td>
+                    <td class="dcol-notes"><span style="font-size:0.8rem;color:var(--text-default);max-width:150px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(v.notes || '').replace(/"/g, '&quot;')}">${v.notes || '—'}</span></td>
+                    <td class="dcol-created"><span style="font-size:0.75rem;color:var(--text-muted);">${formatDate(v.created_at)}</span></td>
+                    <td class="dcol-actions" style="text-align:center;">
+                        <div class="table-action-group">
+                            <button class="table-action-btn edit" title="Edit" onclick='openEditModal(${JSON.stringify(v)})'>
+                                <i data-lucide="pencil" style="width:15px;height:15px;"></i>
+                            </button>
+                            <button class="table-action-btn delete" title="Delete" onclick="openDeleteModal(${v.id}, '${(v.vehicle_number || '').replace(/'/g, "\\'")}')">
+                                <i data-lucide="trash-2" style="width:15px;height:15px;"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            // Pagination
+            document.getElementById('paginationInfo').textContent = `Showing ${start+1}–${Math.min(start+perPage, filtered.length)} of ${filtered.length} entries`;
+
+            let pagBtns = '';
+            pagBtns += `<button class="page-btn" onclick="goToPage(${currentPage-1})" ${currentPage===1?'disabled':''}><i data-lucide="chevron-left" style="width:14px;height:14px;"></i></button>`;
+            for (let p = 1; p <= totalPages && p <= 5; p++) {
+                pagBtns += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goToPage(${p})">${p}</button>`;
+            }
+            if (totalPages > 5) {
+                pagBtns += `<span style="padding:0 0.5rem;color:var(--text-muted);">...</span>`;
+                pagBtns += `<button class="page-btn ${totalPages===currentPage?'active':''}" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+            pagBtns += `<button class="page-btn" onclick="goToPage(${currentPage+1})" ${currentPage>=totalPages?'disabled':''}><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>`;
+            document.getElementById('paginationButtons').innerHTML = pagBtns;
+
+            lucide.createIcons();
+            applyDashboardColumns();
+        }
+
+        function goToPage(p) {
+            currentPage = p;
+            renderTable();
+        }
+
+        // Search (client-side within loaded data)
+        document.getElementById('searchInput').addEventListener('input', () => {
+            currentPage = 1;
+            renderTable();
+        });
+
+        // ============ OWNER AUTO-SUGGEST ============
+        const ownerInput = document.getElementById('vOwnerName');
+        const ownerDropdown = document.getElementById('ownerSuggestDropdown');
+
+        ownerInput.addEventListener('input', () => {
+            const query = ownerInput.value.toLowerCase().trim();
+            if (!query || query.length < 2) {
+                ownerDropdown.classList.remove('show');
+                return;
+            }
+
+            // Build unique owners from allVehicles
+            const ownerMap = {};
+            allVehicles.forEach(v => {
+                const key = v.client_name || '';
+                if (key && !ownerMap[key]) {
+                    ownerMap[key] = { name: key, company: v.company, phone: v.phone, vehicle_number: v.vehicle_number };
+                }
+            });
+
+            const matches = Object.values(ownerMap).filter(o =>
+                o.name.toLowerCase().includes(query) ||
+                (o.company || '').toLowerCase().includes(query) ||
+                (o.phone || '').toLowerCase().includes(query)
+            );
+
+            if (matches.length === 0) {
+                ownerDropdown.innerHTML = '<div style="padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--text-muted);text-align:center;">No matching owners</div>';
+            } else {
+                ownerDropdown.innerHTML = matches.slice(0, 8).map(o => `
+                    <div class="owner-suggest-item" data-name="${o.name}" data-company="${o.company || ''}" data-phone="${o.phone || ''}" data-vehicle="${o.vehicle_number || ''}">
+                        <div class="owner-suggest-name">${o.name}</div>
+                        <div class="owner-suggest-sub">${o.company || 'No company'} · ${o.phone || 'No phone'}</div>
+                    </div>
+                `).join('');
+            }
+            ownerDropdown.classList.add('show');
+        });
+
+        ownerDropdown.addEventListener('click', (e) => {
+            const item = e.target.closest('.owner-suggest-item');
+            if (!item) return;
+            ownerInput.value = item.dataset.name;
+            document.getElementById('vCompany').value = item.dataset.company;
+            document.getElementById('vPhone').value = item.dataset.phone;
+            ownerDropdown.classList.remove('show');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.owner-suggest-wrapper')) {
+                ownerDropdown.classList.remove('show');
+            }
+        });
+
+        // ============ ADD VEHICLE MODAL ============
+        function openAddModal() {
+            document.getElementById('vehicleEditId').value = '';
+            document.getElementById('vehicleForm').reset();
+            document.getElementById('vehicleModalTitle').innerHTML = '<i data-lucide="plus-circle" style="width:20px;height:20px;color:var(--primary);"></i> Add New Vehicle';
+            document.getElementById('vehicleSubmitText').textContent = 'Add Vehicle';
+            document.getElementById('vehicleModal').classList.add('active');
+            document.body.classList.add('modal-open');
+            lucide.createIcons();
+        }
+
+        function closeVehicleModal() {
+            document.getElementById('vehicleModal').classList.remove('active');
+            document.body.classList.remove('modal-open');
+        }
+
+        // ============ EDIT VEHICLE MODAL ============
+        function openEditModal(v) {
+            document.getElementById('vehicleEditId').value = v.id;
+            document.getElementById('vOwnerName').value = v.client_name || '';
+            document.getElementById('vPhone').value = v.phone || '';
+            document.getElementById('vCompany').value = v.company || '';
+            document.getElementById('vVehicleNumber').value = v.vehicle_number || '';
+            document.getElementById('vVehicleType').value = v.vehicle_type || '';
+            document.getElementById('vRoadTaxAmount').value = v.road_tax_amount || '';
+            document.getElementById('vFcExpiry').value = v.fc_expiry_date ? v.fc_expiry_date.split('T')[0] : '';
+            document.getElementById('vNp').value = v.np ? v.np.split('T')[0] : '';
+            document.getElementById('vPermit').value = v.permit ? v.permit.split('T')[0] : '';
+            document.getElementById('vRoadTax').value = v.road_tax ? v.road_tax.split('T')[0] : '';
+            document.getElementById('vNotes').value = v.notes || '';
+
+            document.getElementById('vehicleModalTitle').innerHTML = '<i data-lucide="pencil" style="width:20px;height:20px;color:var(--primary);"></i> Edit Vehicle';
+            document.getElementById('vehicleSubmitText').textContent = 'Save Changes';
+            document.getElementById('vehicleModal').classList.add('active');
+            document.body.classList.add('modal-open');
+            lucide.createIcons();
+        }
+
+        // ============ FORM SUBMIT (ADD / EDIT) ============
+        document.getElementById('vehicleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('vehicleSubmitBtn');
+            const editId = document.getElementById('vehicleEditId').value;
+            const isEdit = !!editId;
+
+            const payload = {
+                client_name: document.getElementById('vOwnerName').value.trim(),
+                phone: document.getElementById('vPhone').value.trim(),
+                company: document.getElementById('vCompany').value.trim(),
+                vehicle_number: document.getElementById('vVehicleNumber').value.trim(),
+                vehicle_type: document.getElementById('vVehicleType').value,
+                fc_expiry_date: document.getElementById('vFcExpiry').value,
+                np: document.getElementById('vNp').value || null,
+                permit: document.getElementById('vPermit').value || null,
+                road_tax: document.getElementById('vRoadTax').value || null,
+                road_tax_amount: parseFloat(document.getElementById('vRoadTaxAmount').value) || null,
+                notes: document.getElementById('vNotes').value.trim() || null
+            };
+
+            btn.disabled = true;
+            btn.querySelector('#vehicleSubmitText').textContent = isEdit ? 'Saving...' : 'Adding...';
+
+            try {
+                const res = await apiCall(isEdit ? `api/vehicles/${editId}` : 'api/vehicles', {
+                    method: isEdit ? 'PUT' : 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.success) {
+                    showToast(res.message || (isEdit ? 'Vehicle updated successfully.' : 'Vehicle added successfully.'), 'success');
+                    closeVehicleModal();
+                    loadVehicles();
+                } else {
+                    showToast(res.message || 'Operation failed.', 'error');
+                }
+            } catch (err) {
+                const errMsg = (err.data && err.data.message) || err.message || 'Operation failed.';
+                showToast(errMsg, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.querySelector('#vehicleSubmitText').textContent = isEdit ? 'Save Changes' : 'Add Vehicle';
+            }
+        });
+
+        // ============ DELETE VEHICLE ============
+        function openDeleteModal(id, vehicleNum) {
+            deleteTargetId = id;
+            deleteTargetNum = vehicleNum;
+            document.getElementById('deleteVehicleNum').textContent = vehicleNum;
+            document.getElementById('deleteModal').classList.add('active');
+            document.body.classList.add('modal-open');
+            lucide.createIcons();
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            document.body.classList.remove('modal-open');
+            deleteTargetId = null;
+        }
+
+        async function confirmDelete() {
+            if (!deleteTargetId) return;
+            const btn = document.getElementById('confirmDeleteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Deleting...';
+
+            try {
+                const res = await apiCall(`api/vehicles/${deleteTargetId}`, { method: 'DELETE' });
+
+                if (res.success) {
+                    showToast(res.message || 'Vehicle deleted successfully.', 'success');
+                    closeDeleteModal();
+                    loadVehicles();
+                } else {
+                    showToast(res.message || 'Delete failed.', 'error');
+                }
+            } catch (err) {
+                const errMsg = (err.data && err.data.message) || err.message || 'Delete failed.';
+                showToast(errMsg, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete';
+                lucide.createIcons();
+            }
+        }
+
+        // Close modals on overlay click
+        document.getElementById('vehicleModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeVehicleModal();
+        });
+        document.getElementById('deleteModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeDeleteModal();
+        });
+
+        // ============ INIT ============
+        initCardPinToggle('stats-row', 'dashboard_cards_pinned', 'dashboard-controls');
+        checkWhatsAppStatus();
+        scrollCards(0); // init carousel arrows
+        populateVehicleTypes('vVehicleType');
+        populateVehicleTypes('filterVehicleType', true);
+        loadVehicles();
+    </script>
+</body>
+</html>

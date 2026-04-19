@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Log - CRM</title>
+    <meta name="description" content="Daily vehicle work log and billing tracker">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 1050;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 1rem;
+            overflow-y: auto;
+        }
+        .modal-overlay.active { display: flex; }
+        body.modal-open { overflow: hidden; }
+        .modal-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 550px;
+            padding: 1.75rem;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.15);
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+        .btn-secondary {
+            padding: 0.6rem 1.25rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-default);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: var(--border-light); }
+        .btn-danger-modal {
+            padding: 0.6rem 1.25rem;
+            border-radius: var(--radius-lg);
+            border: none;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-danger-modal:hover { opacity: 0.9; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        @media (max-width: 576px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-end;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .filter-bar .form-group { margin-bottom: 0; }
+        .filter-bar .form-label { font-size: 0.7rem; margin-bottom: 0.25rem; }
+        .filter-bar input, .filter-bar select {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+        }
+        .table-action-group {
+            display: flex;
+            gap: 0.25rem;
+            justify-content: center;
+        }
+        .table-action-btn.edit:hover { color: var(--primary); }
+        .table-action-btn.delete:hover { color: #ef4444; }
+        /* Delete confirm modal */
+        .delete-modal-box {
+            max-width: 400px;
+            text-align: center;
+        }
+        .delete-modal-box .delete-icon {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: rgba(239,68,68,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: #ef4444;
+        }
+        .delete-modal-box p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.5rem 0 0;
+        }
+        .delete-modal-box .modal-actions { justify-content: center; }
+
+        /* Summary cards */
+        .wl-stat {
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius-lg);
+            text-align: center;
+        }
+        .wl-stat .wl-val {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+        .wl-stat .wl-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.15rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <main class="main-content">
+            <div id="header-container"></div>
+            <div class="page-content custom-scrollbar">
+
+                <!-- Page Title -->
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+                    <div>
+                        <h2 style="font-size:1.25rem;font-weight:700;color:var(--text-dark);margin:0;">Work Log</h2>
+                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0;">Track daily vehicle service work and billing</p>
+                    </div>
+                    <button class="btn-primary" onclick="openAddWorkModal()">
+                        <i data-lucide="plus" style="width:16px;height:16px;"></i> Add Work Entry
+                    </button>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="container-fluid p-0 mb-4" id="stats-container">
+                    <div class="row g-3" id="wl-stats-row">
+                        <div class="col-6 col-sm-3">
+                            <div class="glass-card wl-stat">
+                                <div class="wl-val" id="statTotal">—</div>
+                                <div class="wl-label">Today / Total Entries</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="glass-card wl-stat">
+                                <div class="wl-val" style="color:var(--success);" id="statPaid">—</div>
+                                <div class="wl-label">Paid</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="glass-card wl-stat">
+                                <div class="wl-val" style="color:var(--warning);" id="statPartial">—</div>
+                                <div class="wl-label">Partial</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="glass-card wl-stat">
+                                <div class="wl-val" style="color:var(--danger);" id="statPending">—</div>
+                                <div class="wl-label">Pending</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="glass-card overflow-hidden mb-4">
+                    <div class="data-table-header">
+                        <div class="data-table-title">
+                            <h2>Daily Work Entries</h2>
+                            <p>All service and billing records</p>
+                        </div>
+                        <div class="data-table-actions">
+                            <div class="search-input-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="searchInput" class="search-input" placeholder="Search work entries...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="filter-bar">
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="filterStatus">
+                                <option value="">All</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Partial">Partial</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="filterStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="filterEndDate">
+                        </div>
+                        <button class="btn-primary" onclick="loadWorkLog()" style="padding:0.45rem 1rem;font-size:0.8rem;">
+                            <i data-lucide="filter" style="width:14px;height:14px;"></i> Filter
+                        </button>
+                        <button class="btn-secondary" onclick="clearFilters()" style="padding:0.45rem 1rem;font-size:0.8rem;">
+                            <i data-lucide="x" style="width:14px;height:14px;"></i> Clear
+                        </button>
+                    </div>
+
+                    <div style="overflow-x:auto;" class="custom-scrollbar">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Client</th>
+                                    <th>Vehicle</th>
+                                    <th>Work Description</th>
+                                    <th>Total</th>
+                                    <th>Paid</th>
+                                    <th>Balance</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th style="text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="workLogBody">
+                                <tr><td colspan="10" class="empty-state"><span class="spinner dark"></span> Loading work log...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-wrapper" id="paginationWrapper">
+                        <span class="pagination-info" id="paginationInfo">Showing 0 entries</span>
+                        <div class="pagination-buttons" id="paginationButtons"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ========== ADD / EDIT WORK MODAL ========== -->
+    <div class="modal-overlay" id="workModal">
+        <div class="modal-box">
+            <h3 class="modal-title" id="workModalTitle">
+                <i data-lucide="plus-circle" style="width:20px;height:20px;color:var(--primary);"></i>
+                Add Work Entry
+            </h3>
+            <form id="workForm" autocomplete="off">
+                <input type="hidden" id="workEditId" value="">
+                <div class="form-group">
+                    <label class="form-label" for="workVehicleSearch">Vehicle *</label>
+                    <input type="hidden" id="workVehicle" value="">
+                    <div class="searchable-select-wrapper">
+                        <input type="text" id="workVehicleSearch" class="searchable-select-input" placeholder="Search by vehicle, owner, or company..." autocomplete="off" required>
+                        <div class="searchable-select-list" id="vehicleSearchList"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="workDescription">Work Description *</label>
+                    <textarea id="workDescription" class="form-control" rows="3" placeholder="Describe the work done..." required style="resize:vertical;"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="workTotalAmount">Total Amount (₹) *</label>
+                        <input type="number" id="workTotalAmount" class="form-control" placeholder="Total amount" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="workPaidAmount">Paid Amount (₹) *</label>
+                        <input type="number" id="workPaidAmount" class="form-control" placeholder="Paid amount" step="0.01" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="workBillingDate">Billing Date *</label>
+                    <input type="date" id="workBillingDate" class="form-control" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeWorkModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="workSubmitBtn" style="padding:0.6rem 1.5rem;">
+                        <i data-lucide="check" style="width:16px;height:16px;"></i>
+                        <span id="workSubmitText">Add Entry</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== DELETE CONFIRMATION MODAL ========== -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-box delete-modal-box">
+            <div class="delete-icon">
+                <i data-lucide="trash-2" style="width:28px;height:28px;"></i>
+            </div>
+            <h3 class="modal-title" style="justify-content:center;">Delete Work Entry</h3>
+            <p>Are you sure you want to delete this work entry?</p>
+            <p style="font-size:0.75rem;color:var(--text-muted);">This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-danger-modal" id="confirmDeleteBtn" onclick="confirmDelete()">
+                    <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    <script>
+        requireAuth();
+        document.getElementById('sidebar-container').innerHTML = generateSidebarHTML('worklog');
+        document.getElementById('header-container').innerHTML = generateHeaderHTML();
+
+        // State
+        let allWorkEntries = [];
+        let allVehicles = [];
+        let currentPage = 1;
+        const perPage = 15;
+        let deleteTargetId = null;
+
+        // Set default date to today
+        document.getElementById('workBillingDate').value = new Date().toISOString().split('T')[0];
+
+        // ============ LOAD VEHICLES (for searchable dropdown) ============
+        async function loadVehicles() {
+            try {
+                const res = await apiCall('api/vehicles');
+                allVehicles = (res.data || []).sort((a, b) => {
+                    const compA = (a.company || '').toLowerCase();
+                    const compB = (b.company || '').toLowerCase();
+                    if (compA !== compB) return compA.localeCompare(compB);
+                    const ownerA = (a.client_name || '').toLowerCase();
+                    const ownerB = (b.client_name || '').toLowerCase();
+                    if (ownerA !== ownerB) return ownerA.localeCompare(ownerB);
+                    return (a.vehicle_number || '').localeCompare(b.vehicle_number || '');
+                });
+            } catch (err) {
+                showToast('Failed to load vehicles', 'error');
+            }
+        }
+
+        // ============ SEARCHABLE VEHICLE DROPDOWN ============
+        const vehicleSearchInput = document.getElementById('workVehicleSearch');
+        const vehicleSearchList = document.getElementById('vehicleSearchList');
+        const vehicleHiddenInput = document.getElementById('workVehicle');
+
+        vehicleSearchInput.addEventListener('input', () => {
+            const q = vehicleSearchInput.value.toLowerCase().trim();
+            if (!q || q.length < 1) {
+                vehicleSearchList.classList.remove('show');
+                vehicleHiddenInput.value = '';
+                return;
+            }
+            const matches = allVehicles.filter(v =>
+                (v.vehicle_number || '').toLowerCase().includes(q) ||
+                (v.client_name || '').toLowerCase().includes(q) ||
+                (v.company || '').toLowerCase().includes(q)
+            ).slice(0, 15);
+
+            if (matches.length === 0) {
+                vehicleSearchList.innerHTML = '<div class="searchable-select-item" style="cursor:default;color:var(--text-muted);text-align:center;">No vehicles found</div>';
+            } else {
+                vehicleSearchList.innerHTML = matches.map(v => `
+                    <div class="searchable-select-item" data-id="${v.id}" data-label="${(v.company || 'N/A')} \u2192 ${v.client_name || 'N/A'} \u2192 ${v.vehicle_number}">
+                        <div class="ss-main">${v.vehicle_number}</div>
+                        <div class="ss-sub">${v.company || 'No company'} \u2192 ${v.client_name || 'N/A'}</div>
+                    </div>
+                `).join('');
+            }
+            vehicleSearchList.classList.add('show');
+        });
+
+        vehicleSearchInput.addEventListener('focus', () => {
+            if (vehicleSearchInput.value.trim().length >= 1) {
+                vehicleSearchInput.dispatchEvent(new Event('input'));
+            }
+        });
+
+        vehicleSearchList.addEventListener('click', (e) => {
+            const item = e.target.closest('.searchable-select-item');
+            if (!item || !item.dataset.id) return;
+            vehicleHiddenInput.value = item.dataset.id;
+            vehicleSearchInput.value = item.dataset.label;
+            vehicleSearchList.classList.remove('show');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.searchable-select-wrapper')) {
+                vehicleSearchList.classList.remove('show');
+            }
+        });
+
+        // ============ LOAD WORK LOG ============
+        async function loadWorkLog() {
+            const tbody = document.getElementById('workLogBody');
+            tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><span class="spinner dark"></span> Loading work log...</td></tr>`;
+
+            try {
+                let url = 'api/billing';
+                const params = [];
+                const status = document.getElementById('filterStatus').value;
+                const startDate = document.getElementById('filterStartDate').value;
+                const endDate = document.getElementById('filterEndDate').value;
+
+                if (status) params.push(`status=${status}`);
+                if (startDate) params.push(`start_date=${startDate}`);
+                if (endDate) params.push(`end_date=${endDate}`);
+                if (params.length) url += '?' + params.join('&');
+
+                const res = await apiCall(url);
+                allWorkEntries = res.data || [];
+                updateStats();
+                renderTable();
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><i data-lucide="alert-circle"></i><p>Failed to load work log</p></td></tr>`;
+                lucide.createIcons();
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            currentPage = 1;
+            loadWorkLog();
+        }
+
+        // ============ STATS ============
+        function updateStats() {
+            const total = allWorkEntries.length;
+            const today = new Date().toISOString().split('T')[0];
+            const todayCount = allWorkEntries.filter(b => {
+                const bDate = (b.billing_date || '').split('T')[0];
+                return bDate === today;
+            }).length;
+            let paid = 0, partial = 0, pending = 0;
+            allWorkEntries.forEach(b => {
+                const s = b.status || '';
+                if (s === 'Paid') paid++;
+                else if (s === 'Partial') partial++;
+                else pending++;
+            });
+            document.getElementById('statTotal').textContent = `${todayCount} / ${total}`;
+            document.getElementById('statPaid').textContent = paid;
+            document.getElementById('statPartial').textContent = partial;
+            document.getElementById('statPending').textContent = pending;
+        }
+
+        // ============ RENDER TABLE ============
+        function renderTable() {
+            const tbody = document.getElementById('workLogBody');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = allWorkEntries.filter(b => {
+                const searchStr = `${b.client_name || ''} ${b.vehicle_number || ''} ${b.work_description || ''}`.toLowerCase();
+                return searchStr.includes(search);
+            });
+
+            const totalPages = Math.ceil(filtered.length / perPage);
+            if (currentPage > totalPages) currentPage = 1;
+            const start = (currentPage - 1) * perPage;
+            const pageData = filtered.slice(start, start + perPage);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><i data-lucide="inbox" style="width:40px;height:40px;opacity:0.4;margin-bottom:0.5rem;display:block;margin-left:auto;margin-right:auto;"></i><p>No work entries found</p></td></tr>`;
+                lucide.createIcons();
+                document.getElementById('paginationInfo').textContent = 'Showing 0 entries';
+                document.getElementById('paginationButtons').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = pageData.map((b, i) => {
+                const balance = (parseFloat(b.total_amount) || 0) - (parseFloat(b.paid_amount) || 0);
+                const statusClass = b.status === 'Paid' ? 'normal' : b.status === 'Partial' ? 'warning' : 'critical';
+                return `<tr>
+                    <td style="color:var(--text-muted);font-weight:500;">${start + i + 1}</td>
+                    <td style="font-weight:500;color:var(--text-dark);">${b.client_name || '—'}</td>
+                    <td><span class="vehicle-number">${b.vehicle_number || b.vehicle_id || '—'}</span></td>
+                    <td style="max-width:200px;white-space:normal;line-height:1.4;">${b.work_description || '—'}</td>
+                    <td><strong>${formatCurrency(b.total_amount)}</strong></td>
+                    <td style="color:var(--success);font-weight:600;">${formatCurrency(b.paid_amount)}</td>
+                    <td style="color:${balance <= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${formatCurrency(balance)}</td>
+                    <td><span style="font-size:0.75rem;color:var(--text-muted);">${formatDate(b.billing_date)}</span></td>
+                    <td><span class="urgency-badge ${statusClass}">${b.status || 'Pending'}</span></td>
+                    <td style="text-align:center;">
+                        <div class="table-action-group">
+                            <button class="table-action-btn edit" title="Edit" onclick='openEditWorkModal(${JSON.stringify(b)})'>
+                                <i data-lucide="pencil" style="width:15px;height:15px;"></i>
+                            </button>
+                            <button class="table-action-btn delete" title="Delete" onclick="openDeleteModal(${b.id})">
+                                <i data-lucide="trash-2" style="width:15px;height:15px;"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            // Pagination
+            document.getElementById('paginationInfo').textContent = `Showing ${start+1}–${Math.min(start+perPage, filtered.length)} of ${filtered.length} entries`;
+
+            let pagBtns = '';
+            pagBtns += `<button class="page-btn" onclick="goToPage(${currentPage-1})" ${currentPage===1?'disabled':''}><i data-lucide="chevron-left" style="width:14px;height:14px;"></i></button>`;
+            for (let p = 1; p <= totalPages && p <= 5; p++) {
+                pagBtns += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goToPage(${p})">${p}</button>`;
+            }
+            if (totalPages > 5) {
+                pagBtns += `<span style="padding:0 0.5rem;color:var(--text-muted);">...</span>`;
+                pagBtns += `<button class="page-btn ${totalPages===currentPage?'active':''}" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+            pagBtns += `<button class="page-btn" onclick="goToPage(${currentPage+1})" ${currentPage>=totalPages?'disabled':''}><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>`;
+            document.getElementById('paginationButtons').innerHTML = pagBtns;
+
+            lucide.createIcons();
+        }
+
+        function goToPage(p) { currentPage = p; renderTable(); }
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; renderTable(); });
+
+        // ============ ADD WORK MODAL ============
+        function openAddWorkModal() {
+            document.getElementById('workEditId').value = '';
+            document.getElementById('workForm').reset();
+            document.getElementById('workVehicle').value = '';
+            document.getElementById('workVehicleSearch').value = '';
+            document.getElementById('workBillingDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('workModalTitle').innerHTML = '<i data-lucide="plus-circle" style="width:20px;height:20px;color:var(--primary);"></i> Add Work Entry';
+            document.getElementById('workSubmitText').textContent = 'Add Entry';
+            document.getElementById('workModal').classList.add('active');
+            document.body.classList.add('modal-open');
+            lucide.createIcons();
+        }
+
+        function openEditWorkModal(b) {
+            document.getElementById('workEditId').value = b.id;
+            document.getElementById('workVehicle').value = b.vehicle_id || '';
+            // Set searchable input with vehicle label
+            const v = allVehicles.find(veh => veh.id == b.vehicle_id);
+            document.getElementById('workVehicleSearch').value = v
+                ? `${v.company || 'N/A'} \u2192 ${v.client_name || 'N/A'} \u2192 ${v.vehicle_number}`
+                : (b.vehicle_number || '');
+            document.getElementById('workDescription').value = b.work_description || '';
+            document.getElementById('workTotalAmount').value = b.total_amount || '';
+            document.getElementById('workPaidAmount').value = b.paid_amount || '';
+            document.getElementById('workBillingDate').value = b.billing_date ? b.billing_date.split('T')[0] : '';
+            document.getElementById('workModalTitle').innerHTML = '<i data-lucide="pencil" style="width:20px;height:20px;color:var(--primary);"></i> Edit Work Entry';
+            document.getElementById('workSubmitText').textContent = 'Save Changes';
+            document.getElementById('workModal').classList.add('active');
+            document.body.classList.add('modal-open');
+            lucide.createIcons();
+        }
+
+        function closeWorkModal() {
+            document.getElementById('workModal').classList.remove('active');
+            document.body.classList.remove('modal-open');
+        }
+
+        // Form submit
+        document.getElementById('workForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('workSubmitBtn');
+            const editId = document.getElementById('workEditId').value;
+            const isEdit = !!editId;
+
+            const payload = {
+                vehicle_id: parseInt(document.getElementById('workVehicle').value),
+                work_description: document.getElementById('workDescription').value.trim(),
+                total_amount: parseFloat(document.getElementById('workTotalAmount').value),
+                paid_amount: parseFloat(document.getElementById('workPaidAmount').value),
+                billing_date: document.getElementById('workBillingDate').value
+            };
+
+            if (!payload.vehicle_id) {
+                showToast('Please select a vehicle.', 'warning');
+                return;
+            }
+
+            btn.disabled = true;
+            document.getElementById('workSubmitText').textContent = isEdit ? 'Saving...' : 'Adding...';
+
+            try {
+                const res = await apiCall(isEdit ? `api/billing/${editId}` : 'api/billing', {
+                    method: isEdit ? 'PUT' : 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.success) {
+                    showToast(res.message || (isEdit ? 'Work entry updated.' : 'Work entry created.'), 'success');
+                    closeWorkModal();
+                    loadWorkLog();
+                } else {
+                    showToast(res.message || 'Operation failed.', 'error');
+                }
+            } catch (err) {
+                const errMsg = (err.data && err.data.message) || err.message || 'Operation failed.';
+                showToast(errMsg, 'error');
+            } finally {
+                btn.disabled = false;
+                document.getElementById('workSubmitText').textContent = isEdit ? 'Save Changes' : 'Add Entry';
+            }
+        });
+
+        // ============ DELETE ============
+        function openDeleteModal(id) {
+            deleteTargetId = id;
+            document.getElementById('deleteModal').classList.add('active');
+            document.body.classList.add('modal-open');
+            lucide.createIcons();
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            document.body.classList.remove('modal-open');
+            deleteTargetId = null;
+        }
+
+        async function confirmDelete() {
+            if (!deleteTargetId) return;
+            const btn = document.getElementById('confirmDeleteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Deleting...';
+
+            try {
+                const res = await apiCall(`api/billing/${deleteTargetId}`, { method: 'DELETE' });
+                if (res.success) {
+                    showToast(res.message || 'Work entry deleted.', 'success');
+                    closeDeleteModal();
+                    loadWorkLog();
+                } else {
+                    showToast(res.message || 'Delete failed.', 'error');
+                }
+            } catch (err) {
+                const errMsg = (err.data && err.data.message) || err.message || 'Delete failed.';
+                showToast(errMsg, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete';
+                lucide.createIcons();
+            }
+        }
+
+        // Close modals on overlay click
+        document.getElementById('workModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeWorkModal();
+        });
+        document.getElementById('deleteModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeDeleteModal();
+        });
+
+        // ============ INIT ============
+        initCardPinToggle('wl-stats-row', 'worklog_cards_pinned');
+        loadVehicles();
+        loadWorkLog();
+    </script>
+</body>
+</html>

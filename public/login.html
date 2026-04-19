@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - CRM</title>
+    <meta name="description" content="Login to your Vehicle Management CRM dashboard">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .login-bg-pattern {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(99,102,241,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 80%, rgba(139,92,246,0.05) 0%, transparent 50%);
+            z-index: 0;
+        }
+        .login-wrapper { position: relative; z-index: 1; }
+        .login-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+        .login-divider::before, .login-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+        .password-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-bg-pattern"></div>
+    <div class="login-wrapper">
+        <div class="login-card glass-card">
+            <!-- Logo -->
+            <div class="login-logo">
+                <div class="sidebar-brand-icon" id="loginBrandIcon">C</div>
+                <div class="sidebar-brand-text" id="loginBrandText">Panze <span>studio.</span></div>
+            </div>
+
+            <h2 style="text-align:center;font-size:1.25rem;font-weight:700;color:var(--text-dark);margin-bottom:0.25rem;">Welcome Back</h2>
+            <p style="text-align:center;font-size:0.8rem;color:var(--text-muted);margin-bottom:2rem;">Sign in to your Vehicle Management CRM</p>
+
+            <!-- Login Form -->
+            <form id="loginForm" autocomplete="on">
+                <div class="form-group">
+                    <label class="form-label" for="loginEmail">Email Address</label>
+                    <div style="position:relative;">
+                        <i data-lucide="mail" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-muted);"></i>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="admin@ficus.com" required autocomplete="email"
+                            style="padding-left:2.5rem;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <div style="position:relative;">
+                        <i data-lucide="lock" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-muted);"></i>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password"
+                            style="padding-left:2.5rem;padding-right:2.5rem;">
+                        <span class="password-toggle" id="togglePassword">
+                            <i data-lucide="eye" style="width:16px;height:16px;"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;color:var(--text-default);cursor:pointer;">
+                        <input type="checkbox" id="rememberMe" style="accent-color:var(--primary);width:15px;height:15px;cursor:pointer;">
+                        Remember me
+                    </label>
+                    <a href="#" style="font-size:0.8rem;color:var(--primary);font-weight:500;">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn-primary" id="loginBtn" style="width:100%;justify-content:center;padding:0.75rem;">
+                    <i data-lucide="log-in" style="width:18px;height:18px;"></i>
+                    Sign In
+                </button>
+            </form>
+
+            <div class="login-divider">or</div>
+
+            <p style="text-align:center;font-size:0.8rem;color:var(--text-muted);">
+                Need access? Contact your <span style="color:var(--primary);font-weight:500;">administrator</span>
+            </p>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (getToken()) window.location.href = 'index.html';
+
+        // Set branding from config
+        document.getElementById('loginBrandIcon').textContent = getConfig('iconLetter', 'C');
+        const brandEl = document.getElementById('loginBrandText');
+        brandEl.innerHTML = `${getConfig('companyName', 'Panze')} <span>${getConfig('companyStudio', 'studio.')}</span>`;
+        document.title = `Login - ${getConfig('appTitle', 'CRM')}`;
+
+        // Password toggle
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('loginPassword');
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            togglePassword.innerHTML = `<i data-lucide="${type === 'password' ? 'eye' : 'eye-off'}" style="width:16px;height:16px;"></i>`;
+            lucide.createIcons({ nodes: [togglePassword] });
+        });
+
+        // Login form submit
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Signing in...';
+
+            try {
+                const res = await apiCall('api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+
+                // API returns: { success: true/false, data: { token, user }, message: "..." }
+                if (res.success && res.data) {
+                    setToken(res.data.token);
+                    if (res.data.user) setUser(res.data.user);
+
+                    showToast(res.message || 'Login successful! Redirecting...', 'success');
+                    setTimeout(() => window.location.href = 'index.html', 800);
+                } else {
+                    // success: false from API
+                    showToast(res.message || 'Invalid email or password.', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="log-in" style="width:18px;height:18px;"></i> Sign In';
+                    lucide.createIcons({ nodes: [btn] });
+                }
+            } catch (err) {
+                // Network error or non-OK HTTP status
+                const errMsg = (err.data && err.data.message) || err.message || 'Invalid email or password.';
+                showToast(errMsg, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="log-in" style="width:18px;height:18px;"></i> Sign In';
+                lucide.createIcons({ nodes: [btn] });
+            }
+        });
+    </script>
+</body>
+</html>

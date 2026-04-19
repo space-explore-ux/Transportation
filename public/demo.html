@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panze Studio - Vehicle Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        .sidebar-active {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+            color: #7c3aed;
+            border-right: 4px solid #7c3aed;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .primary-purple { color: #7c3aed; }
+        .bg-primary-purple { background-color: #7c3aed; }
+        .border-primary-purple { border-color: #7c3aed; }
+    </style>
+</head>
+<body class="text-slate-700 overflow-hidden">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col flex-shrink-0">
+            <div class="p-6">
+                <div class="flex items-center gap-2 mb-8">
+                    <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold italic">p</div>
+                    <span class="text-xl font-bold text-slate-800 tracking-tight">panze <span class="text-purple-600 font-medium text-sm">studio.</span></span>
+                </div>
+
+                <nav class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-2">Menu</p>
+                    <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-active font-medium">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        Dashboard
+                    </a>
+                    <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-all font-medium">
+                        <i data-lucide="message-square" class="w-5 h-5"></i>
+                        Messenger
+                    </a>
+
+                    <div class="pt-6">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-2">Agents & Users</p>
+                        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-all font-medium">
+                            <i data-lucide="ticket" class="w-5 h-5"></i>
+                            Tickets
+                            <i data-lucide="chevron-right" class="w-4 h-4 ml-auto"></i>
+                        </a>
+                        <div class="pl-4 mt-1 space-y-1 border-l-2 border-slate-100 ml-6">
+                            <a href="#" class="block px-4 py-2 text-sm text-slate-400 hover:text-purple-600">Triggering</a>
+                            <a href="#" class="block px-4 py-2 text-sm text-purple-600 font-medium">Vehicle List</a>
+                            <a href="#" class="block px-4 py-2 text-sm text-slate-400 hover:text-purple-600">Products</a>
+                        </div>
+                        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-all font-medium mt-2">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                            Agent Management
+                            <i data-lucide="chevron-right" class="w-4 h-4 ml-auto"></i>
+                        </a>
+                        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-all font-medium">
+                            <i data-lucide="user-cog" class="w-5 h-5"></i>
+                            Manage User
+                            <i data-lucide="chevron-right" class="w-4 h-4 ml-auto"></i>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+            
+            <div class="mt-auto p-6 border-t border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">J</div>
+                    <div>
+                        <p class="text-sm font-semibold">John Doe</p>
+                        <p class="text-xs text-slate-400">Administrator</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <!-- Top Header -->
+            <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0">
+                <div>
+                    <h1 class="text-lg font-bold text-slate-800">Good Morning, John</h1>
+                    <p class="text-xs text-slate-400">Your latest system updates here</p>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex items-center bg-slate-100 rounded-full px-4 py-2 gap-2 border border-slate-200">
+                        <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-500"></i>
+                        <span class="text-xs font-medium">Cron run <span class="text-green-500 ml-1">● Just now</span></span>
+                    </div>
+                    <div class="flex items-center gap-2 border-l border-slate-200 pl-4">
+                        <button class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg relative">
+                            <i data-lucide="bell" class="w-5 h-5"></i>
+                            <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                        </button>
+                        <button class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg">
+                            <i data-lucide="settings" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                
+                <!-- Summary Stats (Following the Reference Image) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-purple-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-slate-400 text-sm font-medium">Total Clients</h3>
+                            <span class="text-xs bg-purple-50 text-purple-600 px-2 py-1 rounded-full">+12%</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-2xl font-bold">232</span>
+                            <span class="text-xs text-slate-400">(420 New)</span>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-blue-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-slate-400 text-sm font-medium">Total Agents</h3>
+                            <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">+5%</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-2xl font-bold">87</span>
+                            <span class="text-xs text-slate-400">(31 New)</span>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-indigo-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-slate-400 text-sm font-medium">Total Categories</h3>
+                            <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded-full">Static</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-2xl font-bold">22</span>
+                            <span class="text-xs text-slate-400">(2 New)</span>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-emerald-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-slate-400 text-sm font-medium">Total Articles</h3>
+                            <span class="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">+18%</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-2xl font-bold">18</span>
+                            <span class="text-xs text-slate-400">(6 Recent)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Grid -->
+                <div class="glass-card rounded-2xl overflow-hidden mb-8">
+                    <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800">Vehicle Management Registry</h2>
+                            <p class="text-sm text-slate-400">Listing all active client vehicles and permit data</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="text" placeholder="Search entries..." class="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 w-full md:w-64">
+                            </div>
+                            <button class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-lg shadow-purple-500/20 flex items-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                Add Vehicle
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-400 uppercase text-[10px] font-bold tracking-widest border-b border-slate-100">
+                                    <th class="px-6 py-4">Client Name</th>
+                                    <th class="px-6 py-4">Company</th>
+                                    <th class="px-6 py-4">Vehicle #</th>
+                                    <th class="px-6 py-4">Type</th>
+                                    <th class="px-6 py-4">FC Expiry</th>
+                                    <th class="px-6 py-4">NP</th>
+                                    <th class="px-6 py-4">Permit</th>
+                                    <th class="px-6 py-4">Road Tax</th>
+                                    <th class="px-6 py-4">Tax Amount</th>
+                                    <th class="px-6 py-4">Created At</th>
+                                    <th class="px-6 py-4 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                <!-- Row 1 -->
+                                <tr class="hover:bg-slate-50/50 transition-colors group">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs">SE</div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-700">Scarlett Evans</p>
+                                                <p class="text-xs text-slate-400">+1 234 567 890</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-slate-600 font-medium">Logistics Pro Ltd</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-purple-600">
+                                        TN-01-AB-1234
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-[10px] font-bold uppercase">Heavy Truck</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                            <span class="text-sm text-slate-600">Oct 24, 2025</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-slate-600 italic">NP-9982</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-medium text-emerald-600">National</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-slate-500">Quarterly</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-bold text-slate-800">$1,450.00</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-xs text-slate-400">12 Jan, 2024</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                                        <button class="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all">
+                                            <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 2 -->
+                                <tr class="hover:bg-slate-50/50 transition-colors group">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">DB</div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-700">Daniel Baker</p>
+                                                <p class="text-xs text-slate-400">+1 987 654 321</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-slate-600 font-medium">Baker Transport</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-purple-600">
+                                        TN-05-CX-5566
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-[10px] font-bold uppercase">Light Van</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                                            <span class="text-sm text-slate-600">Mar 10, 2024</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-slate-600 italic">NP-1021</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-medium text-blue-600">State</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-slate-500">Annual</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-bold text-slate-800">$820.00</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-xs text-slate-400">15 Jan, 2024</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                                        <button class="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all">
+                                            <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 3 -->
+                                <tr class="hover:bg-slate-50/50 transition-colors group">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">CF</div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-700">Chloe Foster</p>
+                                                <p class="text-xs text-slate-400">+1 555 010 998</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-slate-600 font-medium">Urban Couriers</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-purple-600">
+                                        KA-51-MM-0001
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-[10px] font-bold uppercase">Motorcycle</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                                            <span class="text-sm text-slate-600">Jun 05, 2024</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-slate-600 italic">NP-4421</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-medium text-emerald-600">National</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-slate-500">Life Time</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-bold text-slate-800">$120.00</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-xs text-slate-400">18 Jan, 2024</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                                        <button class="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all">
+                                            <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div class="p-6 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-sm text-slate-400 font-medium">Showing 3 of 152 entries</span>
+                        <div class="flex items-center gap-2">
+                            <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 transition-all">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            </button>
+                            <button class="w-8 h-8 flex items-center justify-center rounded-lg bg-purple-600 text-white font-medium text-sm">1</button>
+                            <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-50 hover:bg-slate-50 text-slate-600 text-sm">2</button>
+                            <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-50 hover:bg-slate-50 text-slate-600 text-sm">3</button>
+                            <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 transition-all">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes Section (Custom UI Element) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div class="glass-card p-8 rounded-3xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="p-3 bg-purple-100 text-purple-600 rounded-2xl">
+                                <i data-lucide="sticky-note" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-800">Quick Notes</h3>
+                                <p class="text-xs text-slate-400">Internal reminders for current session</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4">
+                                <div class="w-1 bg-purple-400 rounded-full"></div>
+                                <div>
+                                    <p class="text-sm text-slate-700 font-medium">Verify NP Permit for Scarlett</p>
+                                    <p class="text-xs text-slate-400 mt-1">Due by EOD today</p>
+                                </div>
+                            </div>
+                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4">
+                                <div class="w-1 bg-blue-400 rounded-full"></div>
+                                <div>
+                                    <p class="text-sm text-slate-700 font-medium">Road tax amount updated for heavy vehicles</p>
+                                    <p class="text-xs text-slate-400 mt-1">Updated 2h ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-8 rounded-3xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white">
+                        <h3 class="text-xl font-bold mb-2">Export Registry Data</h3>
+                        <p class="text-purple-100 text-sm mb-6 opacity-80">Download all your vehicle and client data into a structured Excel or CSV format for offline management.</p>
+                        <div class="flex gap-3">
+                            <button class="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                CSV
+                            </button>
+                            <button class="bg-white text-purple-700 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-xl shadow-purple-900/20">
+                                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                                Excel Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Responsive Sidebar Toggle (Simplified for demo)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f') {
+                console.log('Search focused');
+            }
+        });
+    </script>
+</body>
+</html>
