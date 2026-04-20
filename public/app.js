@@ -3,7 +3,7 @@
    ============================================ */
 
 // --- Configuration ---
-const API_BASE_URL = 'http://localhost:3000/'; // Set your API base URL here, e.g. 'https://your-api.ngrok.io'
+const API_BASE_URL = 'https://client-project-45sv.onrender.com/'; // Set your API base URL here, e.g. 'https://your-api.ngrok.io'
 
 // --- Auth Helpers ---
 function getToken() {
